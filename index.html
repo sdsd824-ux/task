@@ -394,6 +394,12 @@ await deleteDoc(doc(db,"tasks",id));
 
 };
 
+window.deleteNotice = async(id)=>{
+
+await deleteDoc(doc(db,"notice",id));
+
+};
+  
 function loadNotice(){
 
 onSnapshot(collection(db,"notice"),snap=>{
@@ -403,11 +409,16 @@ noticeArea.innerHTML="";
 snap.forEach(n=>{
 
 const d=n.data();
+const id=n.id;
 
 const div=document.createElement("div");
 
 div.className="notice";
-div.innerText=d.text;
+
+div.innerHTML = `
+${d.text}
+${myData.role==="admin" ? `<br><button onclick="deleteNotice('${id}')">삭제</button>` : ``}
+`;
 
 noticeArea.appendChild(div);
 
