@@ -154,7 +154,9 @@ getAuth,
 signInWithEmailAndPassword,
 createUserWithEmailAndPassword,
 onAuthStateChanged,
-signOut
+signOut,
+setPersistence,
+browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
@@ -169,18 +171,21 @@ deleteDoc,
 onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  const firebaseConfig = {
-  apiKey: "AIzaSyC6t4mzE936TCxWNdN9VbS5m-YT-kCXjyw",
-  authDomain: "task-f5475.firebaseapp.com",
-  projectId: "task-f5475",
-  storageBucket: "task-f5475.firebasestorage.app",
-  messagingSenderId: "466794970732",
-  appId: "1:466794970732:web:7eef2350e6d638dd6da249"
+const firebaseConfig = {
+apiKey: "AIzaSyC6t4mzE936TCxWNdN9VbS5m-YT-kCXjyw",
+authDomain: "task-f5475.firebaseapp.com",
+projectId: "task-f5475",
+storageBucket: "task-f5475.firebasestorage.app",
+messagingSenderId: "466794970732",
+appId: "1:466794970732:web:7eef2350e6d638dd6da249"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+/* 로그인 유지 방지 */
+await setPersistence(auth, browserSessionPersistence);
 
 let me=null;
 let myData=null;
@@ -207,12 +212,10 @@ joinPassword.value
 );
 
 await setDoc(doc(db,"users",cred.user.uid),{
-
 name:name.value,
 email:joinEmail.value,
 role:"staff",
 approved:false
-
 });
 
 alert("가입완료 / 관리자 승인 필요");
@@ -231,9 +234,17 @@ me=user;
 
 const snap=await getDoc(doc(db,"users",user.uid));
 
+/* 사용자 문서 없는 경우 차단 */
+if(!snap.exists()){
+await signOut(auth);
+alert("사용자 정보 없음");
+return;
+}
+
 myData=snap.data();
 
-if(!myData.approved){
+/* 승인 안된 계정 차단 */
+if(myData.approved !== true){
 alert("관리자 승인 대기");
 await signOut(auth);
 return;
@@ -251,10 +262,8 @@ appArea.style.display="block";
 logoutArea.innerHTML=`<button onclick="logout()">로그아웃</button>`;
 
 if(myData.role==="admin"){
-
 adminTag.innerHTML="관리자";
 renderAdmin();
-
 }
 
 loadTasks();
@@ -264,23 +273,17 @@ enableDrag();
 }
 
 window.logout=()=>{
-
 signOut(auth);
-
 };
 
 function renderAdmin(){
 
 adminPanel.innerHTML=`
-
 <h3>관리자</h3>
-
 <button onclick="addTask()">업무 추가</button>
 <button onclick="addNotice()">공지 작성</button>
-
 <h3>가입 승인</h3>
 <div id="approveList"></div>
-
 `;
 
 loadApprove();
@@ -315,27 +318,20 @@ ${d.name}
 }
 
 window.approve=async(uid)=>{
-
-await updateDoc(doc(db,"users",uid),{
-approved:true
-});
-
+await updateDoc(doc(db,"users",uid),{ approved:true });
 };
 
 window.addTask=async()=>{
 
 const text=prompt("업무");
-
 const staff=prompt("담당자 이름");
 
 if(!text) return;
 
 await addDoc(collection(db,"tasks"),{
-
 text,
 staff,
 status:"todo"
-
 });
 
 };
@@ -344,9 +340,7 @@ window.addNotice=async()=>{
 
 const text=prompt("공지");
 
-await addDoc(collection(db,"notice"),{
-text
-});
+await addDoc(collection(db,"notice"),{ text });
 
 };
 
@@ -363,7 +357,6 @@ const data=d.data();
 const id=d.id;
 
 const div=document.createElement("div");
-
 div.className="card";
 div.draggable=true;
 div.dataset.id=id;
@@ -374,9 +367,7 @@ ${data.text}<br>
 `;
 
 if(myData.role==="admin" && data.status==="done"){
-
 div.innerHTML+=`<br><button onclick="removeTask('${id}')">삭제</button>`;
-
 }
 
 if(data.status==="todo") todo.appendChild(div);
@@ -389,17 +380,13 @@ if(data.status==="done") done.appendChild(div);
 }
 
 window.removeTask=async(id)=>{
-
 await deleteDoc(doc(db,"tasks",id));
-
 };
 
-window.deleteNotice = async(id)=>{
-
+window.deleteNotice=async(id)=>{
 await deleteDoc(doc(db,"notice",id));
-
 };
-  
+
 function loadNotice(){
 
 onSnapshot(collection(db,"notice"),snap=>{
@@ -412,10 +399,9 @@ const d=n.data();
 const id=n.id;
 
 const div=document.createElement("div");
-
 div.className="notice";
 
-div.innerHTML = `
+div.innerHTML=`
 ${d.text}
 ${myData.role==="admin" ? `<br><button onclick="deleteNotice('${id}')">삭제</button>` : ``}
 `;
@@ -445,9 +431,7 @@ col.addEventListener("drop",async e=>{
 const id=e.dataTransfer.getData("id");
 const status=col.dataset.status;
 
-await updateDoc(doc(db,"tasks",id),{
-status
-});
+await updateDoc(doc(db,"tasks",id),{ status });
 
 });
 
