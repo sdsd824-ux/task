@@ -184,7 +184,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* 로그인 유지 방지 */
 await setPersistence(auth, browserSessionPersistence);
 
 let me=null;
@@ -195,15 +194,21 @@ const appArea=document.getElementById("appArea");
 
 window.login=async()=>{
 
+try{
 await signInWithEmailAndPassword(
 auth,
 email.value,
 password.value
 );
+}catch(e){
+alert(e.message);
+}
 
 };
 
 window.signup=async()=>{
+
+try{
 
 const cred=await createUserWithEmailAndPassword(
 auth,
@@ -220,6 +225,12 @@ approved:false
 
 alert("가입완료 / 관리자 승인 필요");
 
+}catch(e){
+
+alert("회원가입 오류 : "+e.message);
+
+}
+
 };
 
 onAuthStateChanged(auth,async(user)=>{
@@ -234,7 +245,6 @@ me=user;
 
 const snap=await getDoc(doc(db,"users",user.uid));
 
-/* 사용자 문서 없는 경우 차단 */
 if(!snap.exists()){
 await signOut(auth);
 alert("사용자 정보 없음");
@@ -243,7 +253,6 @@ return;
 
 myData=snap.data();
 
-/* 승인 안된 계정 차단 */
 if(myData.approved !== true){
 alert("관리자 승인 대기");
 await signOut(auth);
