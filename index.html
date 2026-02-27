@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>업무포털</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <style>
 
 body{
@@ -139,7 +138,7 @@ margin-left:10px;
 
 </div>
 
-<div id="app" style="display:none">
+<div id="appArea" style="display:none">
 
 <div class="container">
 
@@ -150,33 +149,22 @@ margin-left:10px;
 <div class="board">
 
 <div class="column">
-
 <h2>진행중</h2>
-
 <div id="todo"></div>
-
 </div>
 
 <div class="column">
-
 <h2>완료</h2>
-
 <div id="done"></div>
-
 </div>
 
 <div class="column">
-
 <h2>완전완료</h2>
-
 <div id="archive"></div>
-
 </div>
 
 </div>
-
 </div>
-
 </div>
 
 <script type="module">
@@ -198,10 +186,7 @@ doc,
 getDoc,
 setDoc,
 updateDoc,
-deleteDoc,
-onSnapshot,
-query,
-where
+onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -213,49 +198,70 @@ messagingSenderId: "466794970732",
 appId: "1:466794970732:web:7eef2350e6d638dd6da249"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth();
-const db = getFirestore();
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
 
 let me=null;
 let myData=null;
 
+const loginBox=document.getElementById("login");
+const appArea=document.getElementById("appArea");
+
+const emailInput=document.getElementById("email");
+const passwordInput=document.getElementById("password");
+
+const joinEmail=document.getElementById("joinEmail");
+const joinPassword=document.getElementById("joinPassword");
+const nameInput=document.getElementById("name");
+
 window.login=async()=>{
 
-const email=emailInput.value;
-const pass=password.value;
+try{
 
-await signInWithEmailAndPassword(auth,email,pass);
+await signInWithEmailAndPassword(
+auth,
+emailInput.value,
+passwordInput.value
+);
+
+}catch(e){
+
+alert("로그인 실패\n"+e.message);
+
+}
 
 }
 
 window.signup=async()=>{
 
-const email=joinEmail.value;
-const pass=joinPassword.value;
-const name=nameInput.value;
+try{
 
-const cred=await createUserWithEmailAndPassword(auth,email,pass);
+const cred=await createUserWithEmailAndPassword(
+auth,
+joinEmail.value,
+joinPassword.value
+);
 
 await setDoc(doc(db,"users",cred.user.uid),{
 
-email,
-name,
+email:joinEmail.value,
+name:nameInput.value,
 role:"staff",
 approved:false,
 createdAt:new Date()
 
 });
 
-alert("관리자 승인 후 로그인 가능");
+alert("가입 완료\n관리자 승인 필요");
+
+}catch(e){
+
+alert(e.message);
 
 }
 
-const emailInput=document.getElementById("email");
-const password=document.getElementById("password");
-const joinEmail=document.getElementById("joinEmail");
-const joinPassword=document.getElementById("joinPassword");
-const nameInput=document.getElementById("name");
+}
 
 onAuthStateChanged(auth,async(user)=>{
 
@@ -263,14 +269,13 @@ if(!user) return;
 
 me=user;
 
-const ref=doc(db,"users",user.uid);
-const snap=await getDoc(ref);
+const snap=await getDoc(doc(db,"users",user.uid));
 
 myData=snap.data();
 
 if(!myData.approved){
 
-alert("승인대기");
+alert("관리자 승인 대기");
 return;
 
 }
@@ -281,13 +286,12 @@ startApp();
 
 function startApp(){
 
-login.style.display="none";
-app.style.display="block";
+loginBox.style.display="none";
+appArea.style.display="block";
 
 if(myData.role==="admin"){
 
 adminTag.innerText="관리자";
-
 renderAdmin();
 
 }
@@ -302,7 +306,6 @@ function renderAdmin(){
 adminArea.innerHTML=`
 
 <button class="addTask" onclick="addTask()">업무추가</button>
-
 <button onclick="addNotice()">공지작성</button>
 
 `;
@@ -311,7 +314,7 @@ adminArea.innerHTML=`
 
 window.addTask=async()=>{
 
-const text=prompt("업무");
+const text=prompt("업무 입력");
 
 if(!text) return;
 
@@ -327,7 +330,9 @@ created:new Date()
 
 window.addNotice=async()=>{
 
-const text=prompt("공지");
+const text=prompt("공지 입력");
+
+if(!text) return;
 
 await addDoc(collection(db,"notice"),{
 
@@ -346,24 +351,26 @@ todo.innerHTML="";
 done.innerHTML="";
 archive.innerHTML="";
 
-snap.forEach(docu=>{
+snap.forEach(d=>{
 
-const d=docu.data();
-const id=docu.id;
+const data=d.data();
+const id=d.id;
 
 const div=document.createElement("div");
 div.className="card";
-div.innerHTML=`${d.text}<br>`;
+div.innerHTML=data.text+"<br>";
 
-if(d.status==="todo"){
+if(data.status==="todo"){
 
-div.innerHTML+=`<button class="move" onclick="move('${id}','done')">완료</button>`;
+div.innerHTML+=`
+<button class="move" onclick="move('${id}','done')">완료</button>
+`;
 
 todo.appendChild(div);
 
 }
 
-if(d.status==="done"){
+if(data.status==="done"){
 
 div.innerHTML+=`
 <button class="back" onclick="move('${id}','todo')">복귀</button>
@@ -374,7 +381,7 @@ done.appendChild(div);
 
 }
 
-if(d.status==="archive"){
+if(data.status==="archive"){
 
 archive.appendChild(div);
 
@@ -389,9 +396,7 @@ archive.appendChild(div);
 window.move=async(id,st)=>{
 
 await updateDoc(doc(db,"tasks",id),{
-
 status:st
-
 });
 
 }
