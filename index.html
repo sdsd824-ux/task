@@ -169,18 +169,18 @@ deleteDoc,
 onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const firebaseConfig = {
-
-apiKey: "너꺼",
-authDomain: "너꺼",
-projectId: "너꺼",
-appId: "너꺼"
-
+  const firebaseConfig = {
+  apiKey: "AIzaSyC6t4mzE936TCxWNdN9VbS5m-YT-kCXjyw",
+  authDomain: "task-f5475.firebaseapp.com",
+  projectId: "task-f5475",
+  storageBucket: "task-f5475.firebasestorage.app",
+  messagingSenderId: "466794970732",
+  appId: "1:466794970732:web:7eef2350e6d638dd6da249"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore();
+const db = getFirestore(app);
 
 let me=null;
 let myData=null;
