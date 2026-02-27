@@ -6,11 +6,7 @@
 
 <style>
 
-body{
-font-family:Arial;
-margin:0;
-background:#f4f6fb;
-}
+body{font-family:Arial;margin:0;background:#f4f6fb;}
 
 header{
 background:#1f2a44;
@@ -18,17 +14,14 @@ color:white;
 padding:14px;
 font-size:20px;
 font-weight:bold;
-}
-
-.container{
-padding:20px;
-}
-
-.board{
 display:flex;
-gap:20px;
-overflow-x:auto;
+justify-content:space-between;
+align-items:center;
 }
+
+.container{padding:20px;}
+
+.board{display:flex;gap:20px;overflow-x:auto;}
 
 .column{
 background:white;
@@ -36,10 +29,6 @@ border-radius:10px;
 padding:15px;
 width:320px;
 box-shadow:0 3px 10px rgba(0,0,0,0.1);
-}
-
-.column h2{
-margin-top:0;
 }
 
 .card{
@@ -56,26 +45,11 @@ border-radius:6px;
 cursor:pointer;
 }
 
-.addTask{
-background:#2b7cff;
-color:white;
-margin-bottom:10px;
-}
-
-.move{
-background:#22c55e;
-color:white;
-}
-
-.back{
-background:#f59e0b;
-color:white;
-}
-
-.delete{
-background:#ef4444;
-color:white;
-}
+.addTask{background:#2b7cff;color:white;}
+.move{background:#22c55e;color:white;}
+.back{background:#f59e0b;color:white;}
+.delete{background:#ef4444;color:white;}
+.logout{background:#111;color:white;}
 
 .loginBox{
 max-width:400px;
@@ -99,22 +73,17 @@ margin-bottom:15px;
 border-radius:8px;
 }
 
-.admin{
-background:#111827;
-color:white;
-padding:6px 10px;
-border-radius:6px;
-margin-left:10px;
-}
-
 </style>
 </head>
 
 <body>
 
 <header>
-업무포털
-<span id="adminTag"></span>
+<div>
+업무포털 <span id="adminTag"></span>
+</div>
+
+<div id="logoutArea"></div>
 </header>
 
 <div id="login" class="loginBox">
@@ -158,11 +127,6 @@ margin-left:10px;
 <div id="done"></div>
 </div>
 
-<div class="column">
-<h2>완전완료</h2>
-<div id="archive"></div>
-</div>
-
 </div>
 </div>
 </div>
@@ -175,7 +139,8 @@ import {
 getAuth,
 signInWithEmailAndPassword,
 createUserWithEmailAndPassword,
-onAuthStateChanged
+onAuthStateChanged,
+signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
@@ -186,6 +151,7 @@ doc,
 getDoc,
 setDoc,
 updateDoc,
+deleteDoc,
 onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -198,15 +164,13 @@ messagingSenderId: "466794970732",
 appId: "1:466794970732:web:7eef2350e6d638dd6da249"
 };
 
-const firebaseApp = initializeApp(firebaseConfig);
-const auth = getAuth(firebaseApp);
-const db = getFirestore(firebaseApp);
-
-let me=null;
-let myData=null;
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 const loginBox=document.getElementById("login");
 const appArea=document.getElementById("appArea");
+const logoutArea=document.getElementById("logoutArea");
 
 const emailInput=document.getElementById("email");
 const passwordInput=document.getElementById("password");
@@ -215,20 +179,14 @@ const joinEmail=document.getElementById("joinEmail");
 const joinPassword=document.getElementById("joinPassword");
 const nameInput=document.getElementById("name");
 
+let myData=null;
+
 window.login=async()=>{
 
 try{
-
-await signInWithEmailAndPassword(
-auth,
-emailInput.value,
-passwordInput.value
-);
-
+await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value);
 }catch(e){
-
-alert("로그인 실패\n"+e.message);
-
+alert(e.message);
 }
 
 }
@@ -248,34 +206,37 @@ await setDoc(doc(db,"users",cred.user.uid),{
 email:joinEmail.value,
 name:nameInput.value,
 role:"staff",
-approved:false,
-createdAt:new Date()
+approved:false
 
 });
 
-alert("가입 완료\n관리자 승인 필요");
+alert("가입 완료 / 관리자 승인 필요");
 
 }catch(e){
-
 alert(e.message);
-
 }
 
 }
 
 onAuthStateChanged(auth,async(user)=>{
 
-if(!user) return;
+if(!user){
 
-me=user;
+loginBox.style.display="block";
+appArea.style.display="none";
+logoutArea.innerHTML="";
+return;
+
+}
 
 const snap=await getDoc(doc(db,"users",user.uid));
 
 myData=snap.data();
 
-if(!myData.approved){
+if(!myData || !myData.approved){
 
 alert("관리자 승인 대기");
+await signOut(auth);
 return;
 
 }
@@ -289,16 +250,21 @@ function startApp(){
 loginBox.style.display="none";
 appArea.style.display="block";
 
-if(myData.role==="admin"){
+logoutArea.innerHTML=`<button class="logout" onclick="logout()">로그아웃</button>`;
 
+if(myData.role==="admin"){
 adminTag.innerText="관리자";
 renderAdmin();
-
 }
 
 loadTasks();
 loadNotice();
 
+}
+
+window.logout=async()=>{
+await signOut(auth);
+location.reload();
 }
 
 function renderAdmin(){
@@ -314,7 +280,7 @@ adminArea.innerHTML=`
 
 window.addTask=async()=>{
 
-const text=prompt("업무 입력");
+const text=prompt("업무");
 
 if(!text) return;
 
@@ -330,7 +296,7 @@ created:new Date()
 
 window.addNotice=async()=>{
 
-const text=prompt("공지 입력");
+const text=prompt("공지");
 
 if(!text) return;
 
@@ -349,7 +315,6 @@ onSnapshot(collection(db,"tasks"),snap=>{
 
 todo.innerHTML="";
 done.innerHTML="";
-archive.innerHTML="";
 
 snap.forEach(d=>{
 
@@ -362,10 +327,7 @@ div.innerHTML=data.text+"<br>";
 
 if(data.status==="todo"){
 
-div.innerHTML+=`
-<button class="move" onclick="move('${id}','done')">완료</button>
-`;
-
+div.innerHTML+=`<button class="move" onclick="move('${id}','done')">완료</button>`;
 todo.appendChild(div);
 
 }
@@ -374,16 +336,10 @@ if(data.status==="done"){
 
 div.innerHTML+=`
 <button class="back" onclick="move('${id}','todo')">복귀</button>
-<button class="delete" onclick="move('${id}','archive')">완전완료</button>
+<button class="delete" onclick="removeTask('${id}')">삭제</button>
 `;
 
 done.appendChild(div);
-
-}
-
-if(data.status==="archive"){
-
-archive.appendChild(div);
 
 }
 
@@ -394,11 +350,11 @@ archive.appendChild(div);
 }
 
 window.move=async(id,st)=>{
+await updateDoc(doc(db,"tasks",id),{status:st});
+}
 
-await updateDoc(doc(db,"tasks",id),{
-status:st
-});
-
+window.removeTask=async(id)=>{
+await deleteDoc(doc(db,"tasks",id));
 }
 
 function loadNotice(){
