@@ -2,211 +2,419 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>업무 포털</title>
+<title>업무포털</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
 <style>
+
 body{
-font-family: Arial;
-background:#f5f6fa;
+font-family:Arial;
 margin:0;
+background:#f4f6fb;
 }
 
 header{
-background:#2f3542;
+background:#1f2a44;
 color:white;
-padding:15px;
+padding:14px;
 font-size:20px;
+font-weight:bold;
 }
 
 .container{
 padding:20px;
 }
 
-button{
-padding:8px 14px;
-cursor:pointer;
+.board{
+display:flex;
+gap:20px;
+overflow-x:auto;
 }
 
-input{
-padding:8px;
-margin:5px 0;
-width:200px;
+.column{
+background:white;
+border-radius:10px;
+padding:15px;
+width:320px;
+box-shadow:0 3px 10px rgba(0,0,0,0.1);
+}
+
+.column h2{
+margin-top:0;
 }
 
 .card{
-background:white;
-padding:15px;
+background:#f1f3f8;
+padding:10px;
+border-radius:8px;
 margin-bottom:10px;
+}
+
+button{
+border:none;
+padding:6px 10px;
+border-radius:6px;
+cursor:pointer;
+}
+
+.addTask{
+background:#2b7cff;
+color:white;
+margin-bottom:10px;
+}
+
+.move{
+background:#22c55e;
+color:white;
+}
+
+.back{
+background:#f59e0b;
+color:white;
+}
+
+.delete{
+background:#ef4444;
+color:white;
+}
+
+.loginBox{
+max-width:400px;
+margin:80px auto;
+background:white;
+padding:30px;
+border-radius:10px;
+box-shadow:0 5px 20px rgba(0,0,0,0.1);
+}
+
+input{
+width:100%;
+padding:10px;
+margin-bottom:10px;
+}
+
+.notice{
+background:white;
+padding:10px;
+margin-bottom:15px;
 border-radius:8px;
 }
+
+.admin{
+background:#111827;
+color:white;
+padding:6px 10px;
+border-radius:6px;
+margin-left:10px;
+}
+
 </style>
 </head>
+
 <body>
 
 <header>
 업무포털
+<span id="adminTag"></span>
 </header>
+
+<div id="login" class="loginBox">
+
+<h2>로그인</h2>
+
+<input id="email" placeholder="이메일">
+<input id="password" type="password" placeholder="비밀번호">
+
+<button onclick="login()">로그인</button>
+
+<hr>
+
+<h3>회원가입</h3>
+
+<input id="name" placeholder="이름">
+<input id="joinEmail" placeholder="이메일">
+<input id="joinPassword" type="password" placeholder="비밀번호">
+
+<button onclick="signup()">가입</button>
+
+</div>
+
+<div id="app" style="display:none">
 
 <div class="container">
 
-<div id="loginBox" class="card">
+<div id="adminArea"></div>
 
-<h3>로그인</h3>
+<div id="noticeArea"></div>
 
-<input id="email" placeholder="이메일"><br>
-<input id="password" type="password" placeholder="비밀번호"><br>
+<div class="board">
 
-<button onclick="login()">로그인</button>
-<button onclick="signup()">회원가입</button>
+<div class="column">
 
-</div>
+<h2>진행중</h2>
 
-
-<div id="adminPanel" class="card" style="display:none">
-
-<h3>관리자 페이지</h3>
-
-<div id="userList"></div>
+<div id="todo"></div>
 
 </div>
 
+<div class="column">
 
-<div id="staffPanel" class="card" style="display:none">
+<h2>완료</h2>
 
-<h3>직원 페이지</h3>
-승인 대기중입니다.
+<div id="done"></div>
+
+</div>
+
+<div class="column">
+
+<h2>완전완료</h2>
+
+<div id="archive"></div>
 
 </div>
 
 </div>
 
+</div>
+
+</div>
 
 <script type="module">
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
 getAuth,
-createUserWithEmailAndPassword,
 signInWithEmailAndPassword,
+createUserWithEmailAndPassword,
 onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
 getFirestore,
-doc,
-setDoc,
-getDoc,
 collection,
-getDocs,
-updateDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+addDoc,
+doc,
+getDoc,
+setDoc,
+updateDoc,
+deleteDoc,
+onSnapshot,
+query,
+where
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-
-apiKey: "여기에",
-authDomain: "여기에",
-projectId: "여기에",
-storageBucket: "여기에",
-messagingSenderId: "여기에",
-appId: "여기에"
-
+apiKey: "AIzaSyC6t4mzE936TCxWNdN9VbS5m-YT-kCXjyw",
+authDomain: "task-f5475.firebaseapp.com",
+projectId: "task-f5475",
+storageBucket: "task-f5475.firebasestorage.app",
+messagingSenderId: "466794970732",
+appId: "1:466794970732:web:7eef2350e6d638dd6da249"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
-window.login = async function(){
+let me=null;
+let myData=null;
 
-const email = document.getElementById("email").value;
-const pw = document.getElementById("password").value;
+window.login=async()=>{
 
-await signInWithEmailAndPassword(auth,email,pw);
+const email=emailInput.value;
+const pass=password.value;
 
-};
+await signInWithEmailAndPassword(auth,email,pass);
 
-window.signup = async function(){
+}
 
-const email = document.getElementById("email").value;
-const pw = document.getElementById("password").value;
+window.signup=async()=>{
 
-const result = await createUserWithEmailAndPassword(auth,email,pw);
+const email=joinEmail.value;
+const pass=joinPassword.value;
+const name=nameInput.value;
 
-await setDoc(doc(db,"users",result.user.uid),{
+const cred=await createUserWithEmailAndPassword(auth,email,pass);
 
-email: email,
-name: "",
-role: "staff",
-approved: false,
-createdAt: new Date()
+await setDoc(doc(db,"users",cred.user.uid),{
+
+email,
+name,
+role:"staff",
+approved:false,
+createdAt:new Date()
 
 });
 
-alert("가입 완료 / 관리자 승인 필요");
+alert("관리자 승인 후 로그인 가능");
 
-};
+}
 
-onAuthStateChanged(auth, async (user)=>{
+const emailInput=document.getElementById("email");
+const password=document.getElementById("password");
+const joinEmail=document.getElementById("joinEmail");
+const joinPassword=document.getElementById("joinPassword");
+const nameInput=document.getElementById("name");
+
+onAuthStateChanged(auth,async(user)=>{
 
 if(!user) return;
 
-const ref = doc(db,"users",user.uid);
-const snap = await getDoc(ref);
+me=user;
 
-const data = snap.data();
+const ref=doc(db,"users",user.uid);
+const snap=await getDoc(ref);
 
-if(data.role === "admin"){
+myData=snap.data();
 
-document.getElementById("adminPanel").style.display="block";
-loadUsers();
+if(!myData.approved){
 
-}else{
-
-document.getElementById("staffPanel").style.display="block";
+alert("승인대기");
+return;
 
 }
 
+startApp();
+
 });
 
+function startApp(){
 
-async function loadUsers(){
+login.style.display="none";
+app.style.display="block";
 
-const querySnapshot = await getDocs(collection(db,"users"));
+if(myData.role==="admin"){
 
-let html="";
+adminTag.innerText="관리자";
 
-querySnapshot.forEach((docSnap)=>{
+renderAdmin();
 
-const d = docSnap.data();
+}
 
-html += `
-<div class="card">
-${d.email}
-<br>
-승인:${d.approved}
-<br>
-<button onclick="approve('${docSnap.id}')">승인</button>
-</div>
+loadTasks();
+loadNotice();
+
+}
+
+function renderAdmin(){
+
+adminArea.innerHTML=`
+
+<button class="addTask" onclick="addTask()">업무추가</button>
+
+<button onclick="addNotice()">공지작성</button>
+
 `;
 
-});
+}
 
-document.getElementById("userList").innerHTML = html;
+window.addTask=async()=>{
+
+const text=prompt("업무");
+
+if(!text) return;
+
+await addDoc(collection(db,"tasks"),{
+
+text,
+status:"todo",
+created:new Date()
+
+});
 
 }
 
+window.addNotice=async()=>{
 
-window.approve = async function(uid){
+const text=prompt("공지");
 
-await updateDoc(doc(db,"users",uid),{
+await addDoc(collection(db,"notice"),{
 
-approved:true
+text,
+date:new Date()
 
 });
 
-alert("승인 완료");
-loadUsers();
+}
+
+function loadTasks(){
+
+onSnapshot(collection(db,"tasks"),snap=>{
+
+todo.innerHTML="";
+done.innerHTML="";
+archive.innerHTML="";
+
+snap.forEach(docu=>{
+
+const d=docu.data();
+const id=docu.id;
+
+const div=document.createElement("div");
+div.className="card";
+div.innerHTML=`${d.text}<br>`;
+
+if(d.status==="todo"){
+
+div.innerHTML+=`<button class="move" onclick="move('${id}','done')">완료</button>`;
+
+todo.appendChild(div);
+
+}
+
+if(d.status==="done"){
+
+div.innerHTML+=`
+<button class="back" onclick="move('${id}','todo')">복귀</button>
+<button class="delete" onclick="move('${id}','archive')">완전완료</button>
+`;
+
+done.appendChild(div);
+
+}
+
+if(d.status==="archive"){
+
+archive.appendChild(div);
+
+}
+
+});
+
+});
+
+}
+
+window.move=async(id,st)=>{
+
+await updateDoc(doc(db,"tasks",id),{
+
+status:st
+
+});
+
+}
+
+function loadNotice(){
+
+onSnapshot(collection(db,"notice"),snap=>{
+
+noticeArea.innerHTML="";
+
+snap.forEach(n=>{
+
+const d=n.data();
+
+const div=document.createElement("div");
+div.className="notice";
+div.innerText=d.text;
+
+noticeArea.appendChild(div);
+
+});
+
+});
 
 }
 
