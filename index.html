@@ -210,11 +210,12 @@ window.signup=async()=>{
 
 try{
 
-const cred=await createUserWithEmailAndPassword(
+const cred = await createUserWithEmailAndPassword(
 auth,
 joinEmail.value,
 joinPassword.value
 );
+
 
 await setDoc(doc(db,"users",cred.user.uid),{
 name:name.value,
@@ -222,6 +223,9 @@ email:joinEmail.value,
 role:"staff",
 approved:false
 });
+
+  
+await signOut(auth);
 
 alert("가입완료 / 관리자 승인 필요");
 
@@ -246,8 +250,6 @@ me=user;
 const snap=await getDoc(doc(db,"users",user.uid));
 
 if(!snap.exists()){
-await signOut(auth);
-alert("사용자 정보 없음");
 return;
 }
 
