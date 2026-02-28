@@ -231,9 +231,15 @@ window.login=async()=>{
 await signInWithEmailAndPassword(auth,email.value,password.value);
 };
 
-window.signup=async()=>{
+window.signup = async () => {
 
-const cred=await createUserWithEmailAndPassword(auth,joinEmail.value,joinPassword.value);
+try {
+
+const cred = await createUserWithEmailAndPassword(
+auth,
+joinEmail.value,
+joinPassword.value
+);
 
 await setDoc(doc(db,"users",cred.user.uid),{
 name:name.value,
@@ -244,9 +250,42 @@ createdAt:new Date()
 });
 
 alert("가입 완료 / 관리자 승인 필요");
+
+await signOut(auth);
+
+} catch(e){
+
+if(e.code === "auth/email-already-in-use"){
+
+alert("이미 계정이 있습니다. 관리자에게 승인 요청 상태 확인하세요.");
+
+}else{
+
+console.error(e);
+alert("가입 실패");
+}
+
+}
+
 };
 
 onAuthStateChanged(auth,async(user)=>{
+
+if(!snap.exists()){
+
+await setDoc(doc(db,"users",user.uid),{
+name:user.email,
+email:user.email,
+role:"staff",
+approved:false,
+createdAt:new Date()
+});
+
+alert("사용자 등록 완료. 관리자 승인 필요");
+await signOut(auth);
+return;
+
+}
 
 if(!user){
 loginBox.style.display="block";
