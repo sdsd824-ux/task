@@ -172,7 +172,6 @@ width:320px;
 <h3>업무 추가</h3>
 
 <input id="taskText" placeholder="업무 내용">
-
 <select id="staffSelect"></select>
 
 <button onclick="createTask()">등록</button>
@@ -231,15 +230,11 @@ window.login=async()=>{
 await signInWithEmailAndPassword(auth,email.value,password.value);
 };
 
-window.signup = async () => {
+window.signup=async()=>{
 
-try {
+try{
 
-const cred = await createUserWithEmailAndPassword(
-auth,
-joinEmail.value,
-joinPassword.value
-);
+const cred=await createUserWithEmailAndPassword(auth,joinEmail.value,joinPassword.value);
 
 await setDoc(doc(db,"users",cred.user.uid),{
 name:name.value,
@@ -253,16 +248,13 @@ alert("가입 완료 / 관리자 승인 필요");
 
 await signOut(auth);
 
-} catch(e){
+}catch(e){
 
-if(e.code === "auth/email-already-in-use"){
-
-alert("이미 계정이 있습니다. 관리자에게 승인 요청 상태 확인하세요.");
-
+if(e.code==="auth/email-already-in-use"){
+alert("이미 가입된 이메일입니다");
 }else{
-
-console.error(e);
 alert("가입 실패");
+console.error(e);
 }
 
 }
@@ -271,9 +263,18 @@ alert("가입 실패");
 
 onAuthStateChanged(auth,async(user)=>{
 
+if(!user){
+loginBox.style.display="block";
+appArea.style.display="none";
+return;
+}
+
+const ref=doc(db,"users",user.uid);
+const snap=await getDoc(ref);
+
 if(!snap.exists()){
 
-await setDoc(doc(db,"users",user.uid),{
+await setDoc(ref,{
 name:user.email,
 email:user.email,
 role:"staff",
@@ -281,35 +282,22 @@ approved:false,
 createdAt:new Date()
 });
 
-alert("사용자 등록 완료. 관리자 승인 필요");
+alert("사용자 등록됨 / 관리자 승인 필요");
 await signOut(auth);
 return;
 
-}
-
-if(!user){
-loginBox.style.display="block";
-appArea.style.display="none";
-return;
-}
-
-const snap=await getDoc(doc(db,"users",user.uid));
-
-if(!snap.exists()){
-alert("사용자 데이터 없음");
-await signOut(auth);
-return;
 }
 
 myData=snap.data();
 
-if(myData.approved !== true){
+if(myData.approved!==true){
 alert("관리자 승인 대기");
 await signOut(auth);
 return;
 }
 
 startApp();
+
 });
 
 function startApp(){
@@ -326,10 +314,8 @@ renderAdmin();
 
 loadTasks();
 loadNotice();
-
-if(myData.role==="admin"){
 enableDrag();
-}
+
 }
 
 window.logout=()=>signOut(auth);
@@ -350,11 +336,10 @@ adminPanel.innerHTML=`
 
 loadApprove();
 loadStaffList();
+
 }
 
 function loadApprove(){
-
-const approveList=document.getElementById("approveList");
 
 onSnapshot(collection(db,"users"),snap=>{
 
@@ -364,15 +349,13 @@ snap.forEach(u=>{
 
 const d=u.data();
 
-if(d.approved !== true){
+if(d.approved!==true){
 
 approveList.innerHTML+=`
-
 <div>
 ${d.name} (${d.email})
 <button onclick="approve('${u.id}')">승인</button>
 </div>
-
 `;
 
 }
@@ -380,6 +363,7 @@ ${d.name} (${d.email})
 });
 
 });
+
 }
 
 window.approve=async(uid)=>{
@@ -397,14 +381,13 @@ snap.forEach(u=>{
 const d=u.data();
 
 if(d.role==="staff" && d.approved===true){
-
 staffSelect.innerHTML+=`<option>${d.name}</option>`;
-
 }
 
 });
 
 });
+
 }
 
 window.openTaskModal=()=>{
@@ -431,6 +414,7 @@ createdAt:new Date()
 
 taskText.value="";
 taskModal.style.display="none";
+
 };
 
 window.addNotice=async()=>{
@@ -443,6 +427,7 @@ await addDoc(collection(db,"notice"),{
 text,
 createdAt:new Date()
 });
+
 };
 
 function loadTasks(){
@@ -457,17 +442,12 @@ snap.forEach(d=>{
 const data=d.data();
 const id=d.id;
 
-if(myData.role !== "admin" && data.staff !== myData.name){
-return;
-}
+if(myData.role!=="admin" && data.staff!==myData.name) return;
 
 const div=document.createElement("div");
 div.className="card";
-div.dataset.id=id;
-
-if(myData.role==="admin"){
 div.draggable=true;
-}
+div.dataset.id=id;
 
 div.innerHTML=`
 ${data.text}<br>
@@ -484,6 +464,7 @@ if(data.status==="done") done.appendChild(div);
 });
 
 });
+
 }
 
 window.removeTask=async(id)=>{
@@ -520,6 +501,7 @@ noticeArea.appendChild(div);
 });
 
 });
+
 }
 
 function enableDrag(){
