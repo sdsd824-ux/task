@@ -203,7 +203,9 @@ getDoc,
 setDoc,
 updateDoc,
 deleteDoc,
-onSnapshot
+onSnapshot,
+query,
+where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -308,8 +310,15 @@ appArea.style.display="block";
 logoutArea.innerHTML=`<button onclick="logout()">로그아웃</button>`;
 
 if(myData.role==="admin"){
+
 adminTag.innerHTML="<span class='adminTag'>ADMIN</span>";
 renderAdmin();
+
+}else{
+
+adminTag.innerHTML="";
+adminPanel.innerHTML="";
+
 }
 
 loadTasks();
@@ -432,7 +441,15 @@ createdAt:new Date()
 
 function loadTasks(){
 
-onSnapshot(collection(db,"tasks"),snap=>{
+let q;
+
+if(myData.role==="admin"){
+q = collection(db,"tasks");
+}else{
+q = query(collection(db,"tasks"), where("staff","==",myData.name));
+}
+
+onSnapshot(q,snap=>{
 
 todo.innerHTML="";
 done.innerHTML="";
@@ -441,8 +458,6 @@ snap.forEach(d=>{
 
 const data=d.data();
 const id=d.id;
-
-if(myData.role!=="admin" && data.staff!==myData.name) return;
 
 const div=document.createElement("div");
 div.className="card";
