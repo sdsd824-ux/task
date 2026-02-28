@@ -1,12 +1,10 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <title>업무포털</title>
 
 <style>
-
 body{
 font-family:Arial;
 margin:0;
@@ -89,9 +87,7 @@ border-radius:6px;
 margin-left:10px;
 font-size:12px;
 }
-
 </style>
-
 </head>
 
 <body>
@@ -101,14 +97,12 @@ font-size:12px;
 업무포털
 <span id="adminTag"></span>
 </div>
-
 <div id="logoutArea"></div>
 </header>
 
 <div id="login" class="loginBox">
 
 <h2>로그인</h2>
-
 <input id="email" placeholder="이메일">
 <input id="password" type="password" placeholder="비밀번호">
 <button onclick="login()">로그인</button>
@@ -116,7 +110,6 @@ font-size:12px;
 <hr>
 
 <h3>회원가입</h3>
-
 <input id="name" placeholder="이름">
 <input id="joinEmail" placeholder="이메일">
 <input id="joinPassword" type="password" placeholder="비밀번호">
@@ -125,7 +118,6 @@ font-size:12px;
 </div>
 
 <div id="appArea" style="display:none">
-
 <div class="container">
 
 <div id="adminPanel"></div>
@@ -146,7 +138,6 @@ font-size:12px;
 </div>
 
 </div>
-
 </div>
 </div>
 
@@ -198,35 +189,22 @@ const loginBox=document.getElementById("login");
 const appArea=document.getElementById("appArea");
 
 window.login=async()=>{
-
-await signInWithEmailAndPassword(
-auth,
-email.value,
-password.value
-);
-
+await signInWithEmailAndPassword(auth,email.value,password.value);
 };
 
 window.signup=async()=>{
 
-const cred=await createUserWithEmailAndPassword(
-auth,
-joinEmail.value,
-joinPassword.value
-);
+const cred=await createUserWithEmailAndPassword(auth,joinEmail.value,joinPassword.value);
 
 await setDoc(doc(db,"users",cred.user.uid),{
-
 name:name.value,
 email:joinEmail.value,
 role:"staff",
 approved:false,
 createdAt:new Date()
-
 });
 
 alert("가입 완료 / 관리자 승인 필요");
-
 };
 
 onAuthStateChanged(auth,async(user)=>{
@@ -256,7 +234,6 @@ return;
 }
 
 startApp();
-
 });
 
 function startApp(){
@@ -267,14 +244,13 @@ appArea.style.display="block";
 logoutArea.innerHTML=`<button onclick="logout()">로그아웃</button>`;
 
 if(myData.role==="admin"){
-adminTag.innerHTML="관리자";
+adminTag.innerHTML="<span class='adminTag'>ADMIN</span>";
 renderAdmin();
 }
 
 loadTasks();
 loadNotice();
 enableDrag();
-
 }
 
 window.logout=()=>{
@@ -284,19 +260,15 @@ signOut(auth);
 function renderAdmin(){
 
 adminPanel.innerHTML=`
-
 <h3>관리자</h3>
-
 <button onclick="addTask()">업무 추가</button>
 <button onclick="addNotice()">공지 작성</button>
 
 <h3>가입 승인</h3>
 <div id="approveList"></div>
-
 `;
 
 loadApprove();
-
 }
 
 function loadApprove(){
@@ -309,15 +281,13 @@ snap.forEach(u=>{
 
 const d=u.data();
 
-if(!d.approved){
+if(d.approved !== true){
 
 approveList.innerHTML+=`
-
 <div>
 ${d.name} (${d.email})
 <button onclick="approve('${u.id}')">승인</button>
 </div>
-
 `;
 
 }
@@ -325,15 +295,10 @@ ${d.name} (${d.email})
 });
 
 });
-
 }
 
 window.approve=async(uid)=>{
-
-await updateDoc(doc(db,"users",uid),{
-approved:true
-});
-
+await updateDoc(doc(db,"users",uid),{approved:true});
 };
 
 window.addTask=async()=>{
@@ -344,14 +309,11 @@ const staff=prompt("담당자");
 if(!text) return;
 
 await addDoc(collection(db,"tasks"),{
-
 text,
 staff,
 status:"todo",
 createdAt:new Date()
-
 });
-
 };
 
 window.addNotice=async()=>{
@@ -364,7 +326,6 @@ await addDoc(collection(db,"notice"),{
 text,
 createdAt:new Date()
 });
-
 };
 
 function loadTasks(){
@@ -379,6 +340,11 @@ snap.forEach(d=>{
 const data=d.data();
 const id=d.id;
 
+/* 직원은 자기 업무만 */
+if(myData.role !== "admin" && data.staff !== myData.name){
+return;
+}
+
 const div=document.createElement("div");
 div.className="card";
 div.draggable=true;
@@ -390,12 +356,7 @@ ${data.text}<br>
 `;
 
 if(myData.role==="admin" && data.status==="done"){
-
-div.innerHTML+=`
-<br>
-<button onclick="removeTask('${id}')">삭제</button>
-`;
-
+div.innerHTML+=`<br><button onclick="removeTask('${id}')">삭제</button>`;
 }
 
 if(data.status==="todo") todo.appendChild(div);
@@ -404,19 +365,14 @@ if(data.status==="done") done.appendChild(div);
 });
 
 });
-
 }
 
 window.removeTask=async(id)=>{
-
 await deleteDoc(doc(db,"tasks",id));
-
 };
 
 window.deleteNotice=async(id)=>{
-
 await deleteDoc(doc(db,"notice",id));
-
 };
 
 function loadNotice(){
@@ -434,13 +390,10 @@ const div=document.createElement("div");
 div.className="notice";
 
 div.innerHTML=`
-
 ${d.text}
-
 ${myData.role==="admin"
 ? `<br><button onclick="deleteNotice('${id}')">삭제</button>`
 : ``}
-
 `;
 
 noticeArea.appendChild(div);
@@ -448,7 +401,6 @@ noticeArea.appendChild(div);
 });
 
 });
-
 }
 
 function enableDrag(){
@@ -458,7 +410,6 @@ document.addEventListener("dragstart",e=>{
 if(!e.target.classList.contains("card")) return;
 
 e.dataTransfer.setData("id",e.target.dataset.id);
-
 });
 
 document.querySelectorAll(".column").forEach(col=>{
@@ -472,17 +423,11 @@ col.addEventListener("drop",async e=>{
 const id=e.dataTransfer.getData("id");
 const status=col.dataset.status;
 
-await updateDoc(doc(db,"tasks",id),{
-status
+await updateDoc(doc(db,"tasks",id),{status});
 });
-
 });
-
-});
-
 }
 
 </script>
-
 </body>
 </html>
