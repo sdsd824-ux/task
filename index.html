@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -55,6 +56,8 @@ border:none;
 padding:6px 10px;
 border-radius:6px;
 cursor:pointer;
+background:#1f2a44;
+color:white;
 }
 
 .loginBox{
@@ -66,7 +69,7 @@ border-radius:10px;
 box-shadow:0 5px 20px rgba(0,0,0,0.1);
 }
 
-input,select{
+input{
 width:100%;
 padding:10px;
 margin-bottom:10px;
@@ -84,9 +87,11 @@ background:#111827;
 padding:4px 8px;
 border-radius:6px;
 margin-left:10px;
+font-size:12px;
 }
 
 </style>
+
 </head>
 
 <body>
@@ -172,12 +177,14 @@ onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-apiKey: "AIzaSyC6t4mzE936TCxWNdN9VbS5m-YT-kCXjyw",
-authDomain: "task-f5475.firebaseapp.com",
-projectId: "task-f5475",
-storageBucket: "task-f5475.firebasestorage.app",
-messagingSenderId: "466794970732",
-appId: "1:466794970732:web:7eef2350e6d638dd6da249"
+
+apiKey: "여기너키",
+authDomain: "여기너도메인",
+projectId: "여기프로젝트id",
+storageBucket: "여기",
+messagingSenderId: "여기",
+appId: "여기"
+
 };
 
 const app = initializeApp(firebaseConfig);
@@ -194,46 +201,33 @@ const appArea=document.getElementById("appArea");
 
 window.login=async()=>{
 
-try{
 await signInWithEmailAndPassword(
 auth,
 email.value,
 password.value
 );
-}catch(e){
-alert(e.message);
-}
 
 };
 
 window.signup=async()=>{
 
-try{
-
-const cred = await createUserWithEmailAndPassword(
+const cred=await createUserWithEmailAndPassword(
 auth,
 joinEmail.value,
 joinPassword.value
 );
 
-
 await setDoc(doc(db,"users",cred.user.uid),{
+
 name:name.value,
 email:joinEmail.value,
 role:"staff",
-approved:false
+approved:false,
+createdAt:new Date()
+
 });
 
-  
-await signOut(auth);
-
-alert("가입완료 / 관리자 승인 필요");
-
-}catch(e){
-
-alert("회원가입 오류 : "+e.message);
-
-}
+alert("가입 완료 / 관리자 승인 필요");
 
 };
 
@@ -250,12 +244,14 @@ me=user;
 const snap=await getDoc(doc(db,"users",user.uid));
 
 if(!snap.exists()){
+await signOut(auth);
+alert("사용자 데이터 없음");
 return;
 }
 
 myData=snap.data();
 
-if(myData.approved !== true){
+if(myData.approved!==true){
 alert("관리자 승인 대기");
 await signOut(auth);
 return;
@@ -290,11 +286,15 @@ signOut(auth);
 function renderAdmin(){
 
 adminPanel.innerHTML=`
+
 <h3>관리자</h3>
+
 <button onclick="addTask()">업무 추가</button>
 <button onclick="addNotice()">공지 작성</button>
+
 <h3>가입 승인</h3>
 <div id="approveList"></div>
+
 `;
 
 loadApprove();
@@ -314,10 +314,12 @@ const d=u.data();
 if(!d.approved){
 
 approveList.innerHTML+=`
+
 <div>
-${d.name}
+${d.name} (${d.email})
 <button onclick="approve('${u.id}')">승인</button>
 </div>
+
 `;
 
 }
@@ -329,20 +331,27 @@ ${d.name}
 }
 
 window.approve=async(uid)=>{
-await updateDoc(doc(db,"users",uid),{ approved:true });
+
+await updateDoc(doc(db,"users",uid),{
+approved:true
+});
+
 };
 
 window.addTask=async()=>{
 
-const text=prompt("업무");
-const staff=prompt("담당자 이름");
+const text=prompt("업무 내용");
+const staff=prompt("담당자");
 
 if(!text) return;
 
 await addDoc(collection(db,"tasks"),{
+
 text,
 staff,
-status:"todo"
+status:"todo",
+createdAt:new Date()
+
 });
 
 };
@@ -351,7 +360,12 @@ window.addNotice=async()=>{
 
 const text=prompt("공지");
 
-await addDoc(collection(db,"notice"),{ text });
+if(!text) return;
+
+await addDoc(collection(db,"notice"),{
+text,
+createdAt:new Date()
+});
 
 };
 
@@ -378,7 +392,12 @@ ${data.text}<br>
 `;
 
 if(myData.role==="admin" && data.status==="done"){
-div.innerHTML+=`<br><button onclick="removeTask('${id}')">삭제</button>`;
+
+div.innerHTML+=`
+<br>
+<button onclick="removeTask('${id}')">삭제</button>
+`;
+
 }
 
 if(data.status==="todo") todo.appendChild(div);
@@ -391,11 +410,15 @@ if(data.status==="done") done.appendChild(div);
 }
 
 window.removeTask=async(id)=>{
+
 await deleteDoc(doc(db,"tasks",id));
+
 };
 
 window.deleteNotice=async(id)=>{
+
 await deleteDoc(doc(db,"notice",id));
+
 };
 
 function loadNotice(){
@@ -413,8 +436,13 @@ const div=document.createElement("div");
 div.className="notice";
 
 div.innerHTML=`
+
 ${d.text}
-${myData.role==="admin" ? `<br><button onclick="deleteNotice('${id}')">삭제</button>` : ``}
+
+${myData.role==="admin"
+? `<br><button onclick="deleteNotice('${id}')">삭제</button>`
+: ``}
+
 `;
 
 noticeArea.appendChild(div);
@@ -428,7 +456,11 @@ noticeArea.appendChild(div);
 function enableDrag(){
 
 document.addEventListener("dragstart",e=>{
+
+if(!e.target.classList.contains("card")) return;
+
 e.dataTransfer.setData("id",e.target.dataset.id);
+
 });
 
 document.querySelectorAll(".column").forEach(col=>{
@@ -442,7 +474,9 @@ col.addEventListener("drop",async e=>{
 const id=e.dataTransfer.getData("id");
 const status=col.dataset.status;
 
-await updateDoc(doc(db,"tasks",id),{ status });
+await updateDoc(doc(db,"tasks",id),{
+status
+});
 
 });
 
@@ -451,5 +485,6 @@ await updateDoc(doc(db,"tasks",id),{ status });
 }
 
 </script>
+
 </body>
 </html>
