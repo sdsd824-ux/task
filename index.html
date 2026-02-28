@@ -236,10 +236,16 @@ window.signup=async()=>{
 
 try{
 
-const cred=await createUserWithEmailAndPassword(auth,joinEmail.value,joinPassword.value);
+const nameInput=document.getElementById("userName").value;
+
+const cred=await createUserWithEmailAndPassword(
+auth,
+joinEmail.value,
+joinPassword.value
+);
 
 await setDoc(doc(db,"users",cred.user.uid),{
-name:userName.value,
+name:nameInput,
 email:joinEmail.value,
 role:"staff",
 approved:false,
@@ -275,19 +281,9 @@ const ref=doc(db,"users",user.uid);
 const snap=await getDoc(ref);
 
 if(!snap.exists()){
-
- await setDoc(ref,{
-  name:user.displayName || user.email,
-  email:user.email,
-  role:"staff",
-  approved:false,
-  createdAt:new Date()
- });
-
- alert("사용자 등록됨 / 관리자 승인 필요");
- await signOut(auth);
- return;
-
+alert("관리자 승인 필요");
+await signOut(auth);
+return;
 }
 
 myData=snap.data();
@@ -310,15 +306,11 @@ appArea.style.display="block";
 logoutArea.innerHTML=`<button onclick="logout()">로그아웃</button>`;
 
 if(myData.role==="admin"){
-
 adminTag.innerHTML="<span class='adminTag'>ADMIN</span>";
 renderAdmin();
-
 }else{
-
 adminTag.innerHTML="";
 adminPanel.innerHTML="";
-
 }
 
 loadTasks();
@@ -444,9 +436,9 @@ function loadTasks(){
 let q;
 
 if(myData.role==="admin"){
-q = collection(db,"tasks");
+q=collection(db,"tasks");
 }else{
-q = query(collection(db,"tasks"), where("staff","==",myData.name));
+q=query(collection(db,"tasks"),where("staff","==",myData.name));
 }
 
 onSnapshot(q,snap=>{
