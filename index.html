@@ -133,7 +133,7 @@ width:320px;
 
 <h3>회원가입</h3>
 
-<input id="name" placeholder="이름">
+<input id="userName" placeholder="이름">
 <input id="joinEmail" placeholder="이메일">
 <input id="joinPassword" type="password" placeholder="비밀번호">
 <button onclick="signup()">가입</button>
@@ -239,7 +239,7 @@ try{
 const cred=await createUserWithEmailAndPassword(auth,joinEmail.value,joinPassword.value);
 
 await setDoc(doc(db,"users",cred.user.uid),{
-name:name.value,
+name:userName.value,
 email:joinEmail.value,
 role:"staff",
 approved:false,
