@@ -5,6 +5,7 @@
 <title>업무포털</title>
 
 <style>
+
 body{
 font-family:Arial;
 margin:0;
@@ -67,7 +68,7 @@ border-radius:10px;
 box-shadow:0 5px 20px rgba(0,0,0,0.1);
 }
 
-input{
+input,select{
 width:100%;
 padding:10px;
 margin-bottom:10px;
@@ -87,6 +88,26 @@ border-radius:6px;
 margin-left:10px;
 font-size:12px;
 }
+
+.modal{
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:rgba(0,0,0,0.4);
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.modalBox{
+background:white;
+padding:20px;
+border-radius:10px;
+width:320px;
+}
+
 </style>
 </head>
 
@@ -103,6 +124,7 @@ font-size:12px;
 <div id="login" class="loginBox">
 
 <h2>로그인</h2>
+
 <input id="email" placeholder="이메일">
 <input id="password" type="password" placeholder="비밀번호">
 <button onclick="login()">로그인</button>
@@ -110,6 +132,7 @@ font-size:12px;
 <hr>
 
 <h3>회원가입</h3>
+
 <input id="name" placeholder="이름">
 <input id="joinEmail" placeholder="이메일">
 <input id="joinPassword" type="password" placeholder="비밀번호">
@@ -118,6 +141,7 @@ font-size:12px;
 </div>
 
 <div id="appArea" style="display:none">
+
 <div class="container">
 
 <div id="adminPanel"></div>
@@ -138,6 +162,22 @@ font-size:12px;
 </div>
 
 </div>
+
+</div>
+</div>
+
+<div id="taskModal" style="display:none" class="modal">
+<div class="modalBox">
+
+<h3>업무 추가</h3>
+
+<input id="taskText" placeholder="업무 내용">
+
+<select id="staffSelect"></select>
+
+<button onclick="createTask()">등록</button>
+<button onclick="closeModal()">취소</button>
+
 </div>
 </div>
 
@@ -168,21 +208,20 @@ onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC6t4mzE936TCxWNdN9VbS5m-YT-kCXjyw",
-  authDomain: "task-f5475.firebaseapp.com",
-  projectId: "task-f5475",
-  storageBucket: "task-f5475.firebasestorage.app",
-  messagingSenderId: "466794970732",
-  appId: "1:466794970732:web:7eef2350e6d638dd6da249"
+apiKey:"AIzaSyC6t4mzE936TCxWNdN9VbS5m-YT-kCXjyw",
+authDomain:"task-f5475.firebaseapp.com",
+projectId:"task-f5475",
+storageBucket:"task-f5475.firebasestorage.app",
+messagingSenderId:"466794970732",
+appId:"1:466794970732:web:7eef2350e6d638dd6da249"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-await setPersistence(auth, browserSessionPersistence);
+await setPersistence(auth,browserSessionPersistence);
 
-let me=null;
 let myData=null;
 
 const loginBox=document.getElementById("login");
@@ -215,19 +254,17 @@ appArea.style.display="none";
 return;
 }
 
-me=user;
-
 const snap=await getDoc(doc(db,"users",user.uid));
 
 if(!snap.exists()){
-await signOut(auth);
 alert("사용자 데이터 없음");
+await signOut(auth);
 return;
 }
 
 myData=snap.data();
 
-if(myData.approved!==true){
+if(myData.approved !== true){
 alert("관리자 승인 대기");
 await signOut(auth);
 return;
@@ -250,28 +287,35 @@ renderAdmin();
 
 loadTasks();
 loadNotice();
+
+if(myData.role==="admin"){
 enableDrag();
 }
+}
 
-window.logout=()=>{
-signOut(auth);
-};
+window.logout=()=>signOut(auth);
 
 function renderAdmin(){
 
 adminPanel.innerHTML=`
+
 <h3>관리자</h3>
-<button onclick="addTask()">업무 추가</button>
+
+<button onclick="openTaskModal()">업무 추가</button>
 <button onclick="addNotice()">공지 작성</button>
 
 <h3>가입 승인</h3>
 <div id="approveList"></div>
+
 `;
 
 loadApprove();
+loadStaffList();
 }
 
 function loadApprove(){
+
+const approveList=document.getElementById("approveList");
 
 onSnapshot(collection(db,"users"),snap=>{
 
@@ -284,10 +328,12 @@ const d=u.data();
 if(d.approved !== true){
 
 approveList.innerHTML+=`
+
 <div>
 ${d.name} (${d.email})
 <button onclick="approve('${u.id}')">승인</button>
 </div>
+
 `;
 
 }
@@ -301,10 +347,39 @@ window.approve=async(uid)=>{
 await updateDoc(doc(db,"users",uid),{approved:true});
 };
 
-window.addTask=async()=>{
+function loadStaffList(){
 
-const text=prompt("업무 내용");
-const staff=prompt("담당자");
+onSnapshot(collection(db,"users"),snap=>{
+
+staffSelect.innerHTML="";
+
+snap.forEach(u=>{
+
+const d=u.data();
+
+if(d.role==="staff" && d.approved===true){
+
+staffSelect.innerHTML+=`<option>${d.name}</option>`;
+
+}
+
+});
+
+});
+}
+
+window.openTaskModal=()=>{
+taskModal.style.display="flex";
+};
+
+window.closeModal=()=>{
+taskModal.style.display="none";
+};
+
+window.createTask=async()=>{
+
+const text=taskText.value;
+const staff=staffSelect.value;
 
 if(!text) return;
 
@@ -314,6 +389,9 @@ staff,
 status:"todo",
 createdAt:new Date()
 });
+
+taskText.value="";
+taskModal.style.display="none";
 };
 
 window.addNotice=async()=>{
@@ -340,15 +418,17 @@ snap.forEach(d=>{
 const data=d.data();
 const id=d.id;
 
-/* 직원은 자기 업무만 */
 if(myData.role !== "admin" && data.staff !== myData.name){
 return;
 }
 
 const div=document.createElement("div");
 div.className="card";
-div.draggable=true;
 div.dataset.id=id;
+
+if(myData.role==="admin"){
+div.draggable=true;
+}
 
 div.innerHTML=`
 ${data.text}<br>
@@ -410,6 +490,7 @@ document.addEventListener("dragstart",e=>{
 if(!e.target.classList.contains("card")) return;
 
 e.dataTransfer.setData("id",e.target.dataset.id);
+
 });
 
 document.querySelectorAll(".column").forEach(col=>{
@@ -424,8 +505,11 @@ const id=e.dataTransfer.getData("id");
 const status=col.dataset.status;
 
 await updateDoc(doc(db,"tasks",id),{status});
+
 });
+
 });
+
 }
 
 </script>
