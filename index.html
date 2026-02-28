@@ -276,17 +276,17 @@ const snap=await getDoc(ref);
 
 if(!snap.exists()){
 
-await setDoc(ref,{
-name:user.email,
-email:user.email,
-role:"staff",
-approved:false,
-createdAt:new Date()
-});
+ await setDoc(ref,{
+  name:user.displayName || user.email,
+  email:user.email,
+  role:"staff",
+  approved:false,
+  createdAt:new Date()
+ });
 
-alert("사용자 등록됨 / 관리자 승인 필요");
-await signOut(auth);
-return;
+ alert("사용자 등록됨 / 관리자 승인 필요");
+ await signOut(auth);
+ return;
 
 }
 
